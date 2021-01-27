@@ -37,6 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'user',
+    'btoken',
+    'rest_framework',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
@@ -139,3 +142,9 @@ CORS_ALLOW_HEADERS = (
     'x-csrftoken',
     'x-requested-with',
 )
+
+# 生成token的共享密钥
+JWT_TOKEN_KEY = '123456'
+# 上传文件配置
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
