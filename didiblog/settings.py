@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'user',
     'btoken',
+    "topic",
+    "message",
     'rest_framework',
     'django_filters',
 ]
@@ -116,7 +118,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
@@ -148,3 +150,17 @@ JWT_TOKEN_KEY = '123456'
 # 上传文件配置
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+# ACCOUNT SID：8aaf0708773733a8017741b5e99704c0
+# AUTH TOKEN：06dadebda10d4e4db6e4ecef6c117616
+# url:https://app.cloopen.com:8883
+# AppID(默认)：8aaf0708773733a8017741b5ea2004c7

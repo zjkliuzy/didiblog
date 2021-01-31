@@ -11,15 +11,18 @@ def login_check(func):
     :param func:
     :return:
     """
+
     def wrap(request, *args, **kwargs):
         # 从request中拿到token
         token = request.META.get("HTTP_AUTHORIZATION")
         if not token:
+            print(1)
             result = {"code": 403, "error": "请登录"}
             return JsonResponse(result)
         try:
             payload = jwt.decode(token, settings.JWT_TOKEN_KEY, algorithm="HS256")
-        except:
+        except Exception as e:
+            print(e)
             result = {"code": 403, "error": "请登录"}
             return JsonResponse(result)
 
@@ -30,3 +33,17 @@ def login_check(func):
         return func(request, *args, **kwargs)
 
     return wrap
+
+
+def get_user_by_request(request):
+    token = request.META.get("HTTP_AUTHORIZATION")
+    if not token:
+        # 未登录
+        return None
+    try:
+        payload = jwt.decode(token, settings.JWT_TOKEN_KEY, algorithm="HS256")
+    except:
+        # token失效
+        return None
+    username = payload["username"]
+    return username
