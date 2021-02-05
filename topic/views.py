@@ -1,18 +1,43 @@
 import json
 
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.shortcuts import render
 
 # Create your views here.
 from django.utils.decorators import method_decorator
 from django.views import View
+from django.views.decorators.cache import cache_page
 
+from message.models import Message
+from tools.cache_dec import topic_cache
 from tools.login_dec import *
 from topic.models import Topic
 from user.models import UserProfile
 
 
 class TopicView(View):
+    # 清除缓存的方法
+    def clear_topic_caches(self, request, limit, category):
+        """
+        清除缓存
+        :return:
+        """
+        if limit == "public":
+            key_perfix = "topic_cache_self_"
+        else:
+            key_perfix = "topic_cache_"
+        key_middle = request.path_info
+        if category == "tec":
+            key_last = "?category=tec"
+        else:
+            key_last = "?category=no-tec"
+
+        list_key = []
+        list_key.append(key_perfix + key_middle)
+        list_key.append(key_perfix + key_middle + key_last)
+        cache.delete_many(list_key)
+
     @method_decorator(login_check)
     def post(self, request, author_id):
         user = request.myuser
@@ -37,9 +62,13 @@ class TopicView(View):
             content=content,
             user_profile=user
         )
+        # 如果对文章列表使用了缓存，清理缓存
+        self.clear_topic_caches(request, limit, category)
         return JsonResponse({"code": 200, "username": author_id})
 
+    @method_decorator(topic_cache(100))
     def get(self, request, author_id):
+        print("###############进入函数#################")
         try:
             author = UserProfile.objects.get(username=author_id)
         except:
@@ -151,6 +180,33 @@ class TopicView(View):
         result["data"]["next_id"] = next_id
         result["data"]["next_title"] = next_title
         # 3评论
-        result["data"]["messages"] = None
-        result["data"]["messages_count"] = 0
+        messages = Message.objects.filter(topic=author_topic).order_by("-created_time")
+        msf_lis = []
+        r_dict = {}
+        msg_count = 0
+        for item in messages:
+            if item.parent_message:
+                # 回复
+                r_dict.setdefault(item.parent_message, [])
+                r_dict[item.parent_message].append({
+                    "msg_id": item.id,
+                    "content": item.content,
+                    "publisher": item.user_profile.nickname,
+                    "publisher_avatar": str(item.user_profile.avatar),
+                    "created_time": item.created_time.strftime("%Y-%m-%d %H:%M:%S")
+                })
+            else:
+                # 评论
+                msg_count += 1
+
+                msf_lis.append({"id": item.id, "content": item.content, "publisher": item.user_profile.nickname,
+                                "publisher_avatar": str(item.user_profile.avatar),
+                                "created_time": item.created_time.strftime("%Y-%m-%d %H:%M:%S"), "reply": []})
+
+        for m in msf_lis:
+            if m["id"] in r_dict:
+                m["reply"] = r_dict[m["id"]]
+
+        result["data"]["messages"] = msf_lis
+        result["data"]["messages_count"] = msg_count
         return result
